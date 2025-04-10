@@ -354,6 +354,67 @@ RSpec.describe Dependabot::Docker::FileParser do
       end
     end
 
+    context "with a sha512 digest" do
+      let(:dockerfile_fixture_name) { "sha512_digest" }
+      let(:dockerfile_body) do
+        <<~DOCKERFILE
+          FROM ubuntu@sha512:9a6257a2acf43aa5425f03f0c9d0a6c9e9b0a0fa2cb814cf55a66be180932a5f857ac82501f29c5082b14e0037cd083b09b161be45f43c1e6834c865b5e3ce21
+        DOCKERFILE
+      end
+      let(:registry_tags) { fixture("docker", "registry_tags", "ubuntu.json") }
+      let(:sha512_headers) do
+        headers = JSON.parse(
+          fixture("docker", "registry_manifest_headers", "ubuntu_12.04.5.json")
+        )
+        headers["docker_content_digest"] = "sha512:9a6257a2acf43aa5425f03f0c9d0a6c9e9b0a0fa2cb814cf55a66be180932a5f857ac82501f29c5082b14e0037cd083b09b161be45f43c1e6834c865b5e3ce21"
+        headers
+      end
+
+      let(:repo_url) { "https://registry.hub.docker.com/v2/library/ubuntu/" }
+
+      before do
+        auth_url = "https://auth.docker.io/token?service=registry.docker.io"
+        stub_request(:get, auth_url)
+          .and_return(status: 200, body: { token: "token" }.to_json)
+
+        tags_url = repo_url + "tags/list"
+        stub_request(:get, tags_url)
+          .and_return(status: 200, body: registry_tags)
+      end
+
+      context "when the digest doesn't match any tags" do
+        before do
+          ubuntu_url = "https://registry.hub.docker.com/v2/library/ubuntu/"
+          stub_request(:head, /#{Regexp.quote(ubuntu_url)}manifests/)
+            .and_return(status: 200, body: "", headers: sha512_headers)
+        end
+
+        its(:length) { is_expected.to eq(1) }
+
+        describe "the first dependency" do
+          subject(:dependency) { dependencies.first }
+
+          let(:expected_requirements) do
+            [{
+              requirement: nil,
+              groups: [],
+              file: "Dockerfile",
+              source: {
+                digest: "sha512:9a6257a2acf43aa5425f03f0c9d0a6c9e9b0a0fa2cb814cf55a66be180932a5f857ac82501f29c5082b14e0037cd083b09b161be45f43c1e6834c865b5e3ce21"
+              }
+            }]
+          end
+
+          it "has the right details" do
+            expect(dependency).to be_a(Dependabot::Dependency)
+            expect(dependency.name).to eq("ubuntu")
+            expect(dependency.version).to eq("sha512:9a6257a2acf43aa5425f03f0c9d0a6c9e9b0a0fa2cb814cf55a66be180932a5f857ac82501f29c5082b14e0037cd083b09b161be45f43c1e6834c865b5e3ce21")
+            expect(dependency.requirements).to eq(expected_requirements)
+          end
+        end
+      end
+    end
+
     context "with a tag and digest" do
       subject(:dependency) { dependencies.first }
 

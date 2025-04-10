@@ -172,6 +172,12 @@ RSpec.describe Dependabot::Docker::UpdateChecker do
         it { is_expected.to be_truthy }
       end
 
+      context "when the digest uses sha512" do
+        let(:digest) { "sha512:9a6257a2acf43aa5425f03f0c9d0a6c9e9b0a0fa2cb814cf55a66be180932a5f857ac82501f29c5082b14e0037cd083b09b161be45f43c1e6834c865b5e3ce21" }
+
+        it { is_expected.to be_truthy }
+      end
+
       context "when the digest is up-to-date" do
         let(:latest_digest) { "sha256:3ea1ca1aa8483a38081750953ad75046e6cc9f6b86ca97eba880ebf600d68608" }
         let(:digest) { latest_digest }
@@ -261,6 +267,12 @@ RSpec.describe Dependabot::Docker::UpdateChecker do
         let(:version) { "sha256:309403913c7f0848e6616446edec909b55d53571" }
 
         it { is_expected.to eq("sha256:309403913c7f0848e6616446edec909b55d53571") }
+      end
+
+      context "when the version is a sha512 digest" do
+        let(:version) { "sha512:9a6257a2acf43aa5425f03f0c9d0a6c9e9b0a0fa2cb814cf55a66be180932a5f857ac82501f29c5082b14e0037cd083b09b161be45f43c1e6834c865b5e3ce21" }
+
+        it { is_expected.to eq("sha512:9a6257a2acf43aa5425f03f0c9d0a6c9e9b0a0fa2cb814cf55a66be180932a5f857ac82501f29c5082b14e0037cd083b09b161be45f43c1e6834c865b5e3ce21") }
       end
     end
 

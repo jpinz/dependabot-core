@@ -14,14 +14,14 @@ module Dependabot
       PLATFORM = /--platform\=(?<platform>\S+)/
       TAG_NO_PREFIX = /(?<tag>[\w][\w.-]{0,127})/
       TAG = /:#{TAG_NO_PREFIX}/
-      DIGEST = /(?<digest>[0-9a-f]{64})/
+      DIGEST = /(?<digest>(?:sha256:[\da-f]{64}|sha512:[\da-f]{128}))/
 
       FROM_LINE =
         %r{^#{FROM}\s+(#{PLATFORM}\s+)?(#{REGISTRY}/)?
-          #{IMAGE}#{TAG}?(?:@sha256:#{DIGEST})?#{NAME}?}x
+          #{IMAGE}#{TAG}?(?:@#{DIGEST})?#{NAME}?}x
 
-      IMAGE_SPEC = %r{^(#{REGISTRY}/)?#{IMAGE}#{TAG}?(?:@sha256:#{DIGEST})?#{NAME}?}x
-      TAG_WITH_DIGEST = /^#{TAG_NO_PREFIX}(?:@sha256:#{DIGEST})?/x
+      IMAGE_SPEC = %r{^(#{REGISTRY}/)?#{IMAGE}#{TAG}?(?:@#{DIGEST})?#{NAME}?}x
+      TAG_WITH_DIGEST = /^#{TAG_NO_PREFIX}(?:@#{DIGEST})?/x
 
       sig { returns(Ecosystem) }
       def ecosystem
