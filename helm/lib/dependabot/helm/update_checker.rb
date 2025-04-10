@@ -107,8 +107,10 @@ module Dependabot
 
       sig { params(repo_url: String).returns(String) }
       def build_index_url(repo_url)
-        repo_url_trimmed = repo_url.to_s.strip.chomp("/")
-        "#{repo_url_trimmed}/index.yaml"
+        repo_url_trimmed = repo_url.strip.chomp("/")
+        normalized_repo_url = repo_url_trimmed.gsub("oci://", "https://")
+
+        "#{normalized_repo_url}/index.yaml"
       end
 
       sig { override.returns(T::Boolean) }
@@ -225,8 +227,13 @@ module Dependabot
         )
 
         Dependabot.logger.info("Received response from #{index_url} with status #{response.status}")
+        parsed_result = YAML.safe_load(response.body)
 
-        YAML.safe_load(response.body)
+        unless parsed_result.is_a?(Hash)
+          raise Dependabot::DependencyFileNotParseable, "Expected YAML to parse into a Hash, got String instead"
+        end
+
+        parsed_result
       rescue Excon::Error => e
         Dependabot.logger.error("Error fetching Helm index from #{index_url}: #{e.message}")
         nil
@@ -261,6 +268,8 @@ module Dependabot
         latest_version = docker_checker.latest_version
 
         Dependabot.logger.info("Docker UpdateChecker found latest version: #{latest_version || 'none'}")
+
+        return unless docker_checker.can_update?(requirements_to_unlock: :none)
 
         version_class.new(latest_version)
       end
